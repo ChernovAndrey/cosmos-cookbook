@@ -1,4 +1,5 @@
 - [Overview](index.md)
+- [Models Overview](cosmos_models_overview.md)
 - [Getting Started](getting_started/)
 - [Gallery](gallery/)
 - [Recipes](recipes/)

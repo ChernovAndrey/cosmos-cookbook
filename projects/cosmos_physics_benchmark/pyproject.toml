@@ -1,0 +1,36 @@
+[project]
+name = "cosmos-physics-benchmark"
+version = "0.1.0"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "numpy>=1.24",
+    "opencv-python-headless>=4.8",
+    "matplotlib>=3.7",
+]
+
+[dependency-groups]
+gpu = [
+    "torch>=2.5; sys_platform == 'linux'",
+    "torchvision>=0.20; sys_platform == 'linux'",
+]
+notebook = [
+    "ipykernel>=6.29",
+    "jupyter>=1.1",
+]
+
+[tool.uv]
+default-groups = ["gpu"]
+# CUDA torch wheels are Linux-only; this lets uv resolve for both platforms
+environments = [
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "sys_platform == 'darwin'",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }
