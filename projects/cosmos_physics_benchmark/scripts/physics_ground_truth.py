@@ -143,23 +143,26 @@ def pendulum_trajectory(
 def ramp_trajectory(
     n_frames: int = 93,
     fps: float = 16.0,
-    g: float = 9.81,
-    angle_deg: float = 30.0,
-    ramp_start_x: float = 0.1,
-    ramp_start_y: float = 0.15,
-    ramp_length_norm: float = 0.7,
+    g: float = 9.80665,
+    angle_deg: float = 45.0,
+    ramp_start_x: float = 0.05,
+    ramp_start_y: float = 0.05,
+    ramp_length_norm: float = 0.85,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Generate normalized trajectory for ball rolling down a ramp.
+    """Generate normalized trajectory for a solid sphere rolling without slipping down a ramp.
 
-    s(t) = 0.5 * g * sin(angle) * t^2  (distance along ramp)
+    s(t) = 0.5 * (5/7) * g * sin(angle) * t^2  (distance along ramp)
+
+    For a solid sphere (I = 2/5 mR^2) rolling without slipping, the
+    effective linear acceleration along the incline is (5/7) * g * sin(angle).
 
     Args:
         n_frames: Number of frames.
         fps: Frames per second.
-        g: Gravitational acceleration.
-        angle_deg: Ramp angle.
-        ramp_start_x: Top of ramp x position.
-        ramp_start_y: Top of ramp y position.
+        g: Gravitational acceleration (m/s^2).
+        angle_deg: Ramp angle in degrees.
+        ramp_start_x: Top of ramp x position (normalized).
+        ramp_start_y: Top of ramp y position (normalized).
         ramp_length_norm: Visual length of ramp (normalized).
 
     Returns:
@@ -167,7 +170,8 @@ def ramp_trajectory(
     """
     t = np.arange(n_frames) / fps
     angle_rad = np.radians(angle_deg)
-    a_eff = g * np.sin(angle_rad)
+    # Solid sphere rolling without slipping: a = (5/7) * g * sin(angle)
+    a_eff = (5.0 / 7.0) * g * np.sin(angle_rad)
 
     # Distance along ramp (normalized)
     # Choose scale so the ball traverses the ramp in about 3 seconds

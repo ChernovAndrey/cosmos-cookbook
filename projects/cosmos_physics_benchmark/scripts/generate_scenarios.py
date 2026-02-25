@@ -40,13 +40,19 @@ from pathlib import Path
 
 MODEL_CONFIGS = {
     "2b": {
-        "hf_id": "nvidia/Cosmos-Predict2.5-2B",
+        "hf_id": "2B/post-trained",
         "params": "2B",
         "vram_gb": "~25",
         "min_gpu": "A100 40GB",
     },
+    "2b-distill": {
+        "hf_id": "2B/distilled",
+        "params": "2B-distilled",
+        "vram_gb": "~25",
+        "min_gpu": "A100 40GB",
+    },
     "14b": {
-        "hf_id": "nvidia/Cosmos-Predict2.5-14B",
+        "hf_id": "14B/post-trained",
         "params": "14B",
         "vram_gb": "~55-65",
         "min_gpu": "A100 80GB",
@@ -68,24 +74,60 @@ SCENARIO_PROMPTS = {
         "physics": "y = 0.5 * g * t^2",
         "prompts": [
             (
-                "A bright red ball is released from the top of the frame and "
-                "falls straight down against a plain light blue sky background. "
-                "The camera is completely stationary, showing the full vertical "
-                "trajectory. The ball accelerates as it falls due to gravity. "
-                "Simple, clean scene with no other objects."
+                "A high-definition video captures a physics experiment in a "
+                "bright, cleanly lit indoor laboratory with plain white walls "
+                "and even overhead fluorescent lighting that eliminates harsh "
+                "shadows. A single solid red rubber ball, roughly the size of "
+                "a tennis ball with a smooth matte surface, is positioned at "
+                "the very top of the frame and is released from rest in the "
+                "first frame. There are no hands, people, or other objects "
+                "in the scene — only the red ball against the white "
+                "background. The camera is completely stationary on a tripod, "
+                "framing the full vertical drop distance from ceiling to "
+                "floor. The ball has an initial velocity of zero and falls "
+                "under constant gravitational acceleration of 9.8 metres per "
+                "second squared. It immediately begins to fall straight down, "
+                "picking up speed as it descends. As the video progresses "
+                "the ball accelerates noticeably, moving slowly at first "
+                "near the top of the frame and much faster as it approaches "
+                "the bottom, tracing a perfectly vertical path through the "
+                "centre of the frame. The white background remains static "
+                "throughout, providing high contrast against the vivid red "
+                "ball. The motion is smooth and continuous, consistent with "
+                "real-world gravitational free fall, and the ball remains "
+                "sharply in focus for the entire duration of its descent."
             ),
             (
-                "A solid red sphere drops from a high position and falls "
-                "vertically downward against a clear, uniform sky. Static "
-                "camera captures the entire descent. The ball speeds up as it "
-                "falls, following a natural gravitational trajectory."
+                "A real-world physics demonstration filmed with a stationary "
+                "high-speed camera in a well-lit studio with a uniform light "
+                "grey backdrop. A glossy red billiard-sized ball is visible at "
+                "the top centre of the frame, suspended momentarily before "
+                "being released. Once released the ball drops vertically "
+                "downward in a straight line, accelerating smoothly under "
+                "Earth's gravity. In the first moments the ball drifts slowly "
+                "downward, but it gains speed rapidly, falling faster and "
+                "faster as it descends toward the bottom of the frame. The "
+                "camera does not pan, tilt, or zoom — the framing is fixed "
+                "throughout the entire clip. Soft diffused studio lighting "
+                "illuminates the ball evenly, creating a subtle highlight on "
+                "its upper surface and a small shadow that moves with it. The "
+                "backdrop is completely featureless, keeping full visual "
+                "attention on the falling ball. The overall scene resembles a "
+                "textbook illustration of free-fall motion brought to life."
             ),
             (
-                "Against a plain white background, a bright red ball is "
-                "released from rest at the top of the frame. It falls "
-                "straight down, accelerating under gravity. The camera does "
-                "not move. The scene is minimal with only the falling ball "
-                "visible."
+                "A clean educational video showing gravitational free fall. "
+                "The scene opens in a minimalist white room with bright even "
+                "lighting. A single bright red sphere, about the size of a "
+                "cricket ball, appears at the top of the frame held in place. "
+                "The ball is then released and falls straight down through the "
+                "centre of the frame, accelerating under gravity. It starts "
+                "slowly and picks up speed continuously as it drops, moving "
+                "noticeably faster near the bottom of the frame than at the "
+                "top. The camera is locked off on a tripod and does not move "
+                "at all. The background is a plain white wall with no "
+                "distractions. The red ball stands out sharply against the "
+                "white background throughout its descent."
             ),
         ],
     },
@@ -126,14 +168,59 @@ SCENARIO_PROMPTS = {
         ],
     },
     "ramp": {
-        "description": "Ball rolling down an inclined ramp",
-        "physics": "s = 0.5 * g * sin(angle) * t^2",
+        "description": "Solid sphere rolling without slipping down a 45-degree ramp",
+        "physics": "s = 0.5 * (5/7) * g * sin(45) * t^2, g = 9.80665 m/s^2, a_eff = 4.95 m/s^2",
         "prompts": [
             (
-                "A bright red ball sits at the top of a smooth inclined ramp "
-                "and begins rolling down. The ramp is angled at roughly 30 "
-                "degrees. Plain background, stationary camera showing the "
-                "full ramp. The ball accelerates as it rolls downward."
+                "A two-dimensional side-view video of a controlled physics "
+                "experiment recorded by a stationary camera mounted rigidly on "
+                "a tripod. The camera is positioned perpendicular to the plane "
+                "of motion, looking directly at the scene from the side so that "
+                "all motion occurs strictly within the flat plane of the image. "
+                "There is no perspective distortion, no camera shake, and no "
+                "movement of the camera at any time. "
+                "The setting is a brightly and evenly lit laboratory with a "
+                "uniform matte white wall as the background. The lighting is "
+                "diffuse and shadow-soft, with no flicker or brightness "
+                "variation throughout the video. "
+                "A long, straight, smooth wooden ramp with a light beige surface "
+                "is fixed securely at exactly forty-five degrees relative to the "
+                "horizontal. The ramp extends diagonally from the upper left "
+                "corner of the frame down to the lower right corner. The ramp "
+                "remains completely stationary throughout the video. "
+                "A small solid red rubber ball, approximately the size of a "
+                "tennis ball, is positioned at the very top edge of the ramp. "
+                "The ball is a uniform solid sphere with no markings except a "
+                "small visible surface texture to make rotation perceptible. "
+                "There are no people, hands, tools, supports, or additional "
+                "objects in the scene. Only the ramp and the red ball are "
+                "present against the white wall. "
+                "At time t equals zero seconds, the ball is released from "
+                "complete rest with zero initial linear velocity and zero "
+                "initial angular velocity. No external push is applied. "
+                "The ball rolls down the incline without slipping. Static "
+                "friction at the contact point provides the necessary torque to "
+                "produce angular acceleration. The ball maintains continuous "
+                "contact with the ramp surface at all times. "
+                "Gravitational acceleration is 9.80665 metres per second "
+                "squared. Because the object is a solid sphere rolling without "
+                "slipping, its linear acceleration along the incline is five "
+                "sevenths times g times sine of forty-five degrees, which "
+                "equals approximately 4.95 metres per second squared. "
+                "The motion exhibits uniform linear acceleration down the "
+                "slope. The ball starts moving slowly and increases speed "
+                "smoothly and continuously as it descends. Its center follows "
+                "a perfectly straight diagonal path parallel to the ramp "
+                "surface from the upper left toward the lower right. "
+                "The camera remains completely fixed. There is no zoom, pan, "
+                "tilt, focus shift, or reframing. The lighting, ramp, and "
+                "background remain unchanged and motionless for the entire "
+                "duration. "
+                "The red ball is the only moving object in the frame and "
+                "visually contrasts strongly against the light beige ramp and "
+                "white background. "
+                "By the final frame, the ball reaches the bottom end of the "
+                "ramp while still rolling without slipping."
             ),
         ],
     },
@@ -228,16 +315,14 @@ def generate_video(
     output_path = Path(output_path)
     name = output_path.stem
 
-    input_data = [
-        {
-            "inference_type": "text2world",
-            "name": name,
-            "prompt": prompt,
-            "seed": seed,
-            "guidance": guidance,
-            "num_output_frames": num_frames,
-        }
-    ]
+    input_data = {
+        "inference_type": "text2world",
+        "name": name,
+        "prompt": prompt,
+        "seed": seed,
+        "guidance": guidance,
+        "num_output_frames": num_frames,
+    }
 
     with tempfile.TemporaryDirectory() as tmpdir:
         input_json = os.path.join(tmpdir, "input.json")
@@ -253,7 +338,8 @@ def generate_video(
             config["inference_script"],
             "-i", input_json,
             "-o", infer_output_dir,
-            "--model-name", config["hf_id"],
+            "--model", config["hf_id"],
+            "--disable-guardrails",
         ]
         if "checkpoint_path" in config:
             cmd.extend(["--checkpoint-path", config["checkpoint_path"]])
