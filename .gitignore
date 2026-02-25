@@ -76,6 +76,7 @@ target/
 
 # Jupyter Notebook
 *.ipynb
+!projects/cosmos_physics_benchmark/notebooks/*.ipynb
 .ipynb_checkpoints
 
 # IPython
