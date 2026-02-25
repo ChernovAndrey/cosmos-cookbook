@@ -1,21 +1,28 @@
 """
-Generate physics scenario videos using Cosmos Predict 2.5-2B.
+Generate physics scenario videos using Cosmos Predict 2.5.
 
 This script generates N videos for a given physics scenario by prompting
-Cosmos Predict 2.5-2B with carefully crafted text prompts. Each run uses
-a different random seed to produce statistical variation.
+Cosmos Predict 2.5 (2B or 14B) with carefully crafted text prompts. Each
+run uses a different random seed to produce statistical variation.
 
 Inference uses the cosmos-predict2.5 CLI (torchrun examples/inference.py)
 from the cloned repo. Set --cosmos_dir to point to your local clone.
 
 Usage:
+    # Default (2B model, ~25GB VRAM):
     python generate_scenarios.py \
         --scenario free_fall \
         --n_runs 30 \
         --output_dir ../data/generated_videos/free_fall \
         --cosmos_dir /path/to/cosmos-predict2.5
 
-Hardware: A100 80GB (~25GB VRAM for 2B model)
+    # 14B model (~55-65GB VRAM, A100 80GB required):
+    python generate_scenarios.py \
+        --scenario free_fall \
+        --model 14b \
+        --n_runs 30 \
+        --output_dir ../data/generated_videos/free_fall_14b \
+        --cosmos_dir /path/to/cosmos-predict2.5
 """
 
 import argparse
@@ -26,6 +33,25 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+# ---------------------------------------------------------------------------
+# Model configurations
+# ---------------------------------------------------------------------------
+
+MODEL_CONFIGS = {
+    "2b": {
+        "hf_id": "nvidia/Cosmos-Predict2.5-2B",
+        "params": "2B",
+        "vram_gb": "~25",
+        "min_gpu": "A100 40GB",
+    },
+    "14b": {
+        "hf_id": "nvidia/Cosmos-Predict2.5-14B",
+        "params": "14B",
+        "vram_gb": "~55-65",
+        "min_gpu": "A100 80GB",
+    },
+}
 
 # ---------------------------------------------------------------------------
 # Prompt templates for each physics scenario
@@ -114,7 +140,11 @@ SCENARIO_PROMPTS = {
 }
 
 
-def load_model(cosmos_dir: str, checkpoint_path: str | None = None) -> dict:
+def load_model(
+    cosmos_dir: str,
+    model: str = "2b",
+    checkpoint_path: str | None = None,
+) -> dict:
     """Validate cosmos-predict2.5 installation and return inference config.
 
     Rather than loading the model into this process, we delegate inference
@@ -124,12 +154,15 @@ def load_model(cosmos_dir: str, checkpoint_path: str | None = None) -> dict:
 
     Args:
         cosmos_dir: Path to the cloned cosmos-predict2.5 repository.
+        model: Model size key (``"2b"`` or ``"14b"``).
         checkpoint_path: Optional path to a LoRA/fine-tuned checkpoint
             (.pt file). If None, the base model is used via HuggingFace.
 
     Returns:
         Config dict with validated paths for the inference CLI.
     """
+    model_cfg = MODEL_CONFIGS[model]
+
     cosmos_dir = Path(cosmos_dir).resolve()
     inference_script = cosmos_dir / "examples" / "inference.py"
 
@@ -156,11 +189,16 @@ def load_model(cosmos_dir: str, checkpoint_path: str | None = None) -> dict:
         "cosmos_dir": str(cosmos_dir),
         "inference_script": str(inference_script),
         "venv_python": str(venv_python),
+        "model": model,
+        "hf_id": model_cfg["hf_id"],
     }
     if checkpoint_path:
         config["checkpoint_path"] = str(Path(checkpoint_path).resolve())
 
-    print(f"Cosmos Predict 2.5 validated at {cosmos_dir}")
+    print(
+        f"Cosmos Predict 2.5-{model_cfg['params']} validated at {cosmos_dir} "
+        f"(VRAM: {model_cfg['vram_gb']}GB, min GPU: {model_cfg['min_gpu']})"
+    )
     return config
 
 
@@ -215,6 +253,7 @@ def generate_video(
             config["inference_script"],
             "-i", input_json,
             "-o", infer_output_dir,
+            "--model-name", config["hf_id"],
         ]
         if "checkpoint_path" in config:
             cmd.extend(["--checkpoint-path", config["checkpoint_path"]])
@@ -264,6 +303,13 @@ def main():
         type=str,
         required=True,
         help="Directory to save generated videos",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="2b",
+        choices=list(MODEL_CONFIGS.keys()),
+        help="Model size: 2b (~25GB VRAM) or 14b (~55-65GB VRAM). Default: 2b",
     )
     parser.add_argument(
         "--cosmos_dir",
@@ -333,10 +379,13 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
 
     # Save experiment metadata
+    model_cfg = MODEL_CONFIGS[args.model]
     metadata = {
         "scenario": args.scenario,
         "description": scenario["description"],
         "physics": scenario["physics"],
+        "model": args.model,
+        "model_hf_id": model_cfg["hf_id"],
         "n_runs": args.n_runs,
         "seed_start": args.seed_start,
         "cosmos_dir": args.cosmos_dir,
@@ -350,7 +399,9 @@ def main():
     print(f"Saved metadata to {metadata_path}")
 
     # Validate cosmos-predict2.5 installation
-    config = load_model(args.cosmos_dir, checkpoint_path=args.checkpoint_path)
+    config = load_model(
+        args.cosmos_dir, model=args.model, checkpoint_path=args.checkpoint_path,
+    )
 
     # Generate videos
     total = len(prompts) * args.n_runs
